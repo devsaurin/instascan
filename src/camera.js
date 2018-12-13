@@ -1,13 +1,6 @@
 function cameraName(label) {
-  let clean = label.replace(/\s*\([0-9a-f]+(:[0-9a-f]+)?\)\s*$/, '');
+  var clean = label.replace(/\s*\([0-9a-f]+(:[0-9a-f]+)?\)\s*$/, '');
   return clean || label || null;
-}
-
-class MediaError extends Error {
-  constructor(type) {
-    super(`Cannot access video stream (${type}).`);
-    this.type = type;
-  }
 }
 
 class Camera {
@@ -18,7 +11,7 @@ class Camera {
   }
 
   async start() {
-    let constraints = {
+    var constraints = {
       audio: false,
       video: {
         mandatory: {
@@ -31,10 +24,7 @@ class Camera {
       }
     };
 
-    this._stream = await Camera._wrapErrors(async () => {
-      return await navigator.mediaDevices.getUserMedia(constraints);
-    });
-
+    this._stream = await navigator.mediaDevices.getUserMedia(constraints);
     return this._stream;
   }
 
@@ -51,33 +41,11 @@ class Camera {
   }
 
   static async getCameras() {
-    await this._ensureAccess();
+    var devices = await navigator.mediaDevices.enumerateDevices();
 
-    let devices = await navigator.mediaDevices.enumerateDevices();
     return devices
       .filter(d => d.kind === 'videoinput')
       .map(d => new Camera(d.deviceId, cameraName(d.label)));
-  }
-
-  static async _ensureAccess() {
-    return await this._wrapErrors(async () => {
-      let access = await navigator.mediaDevices.getUserMedia({ video: true });
-      for (let stream of access.getVideoTracks()) {
-        stream.stop();
-      }
-    });
-  }
-
-  static async _wrapErrors(fn) {
-    try {
-      return await fn();
-    } catch (e) {
-      if (e.name) {
-        throw new MediaError(e.name);
-      } else {
-        throw e;
-      }
-    }
   }
 }
 
